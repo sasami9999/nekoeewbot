@@ -1,0 +1,13 @@
+version: '1.0'
+services:
+  bot:
+    build: .
+#    image: 
+#     - orgeewbot
+    volumes:
+      - ./src:/usr/src/app:rw
+    environment:
+      - TOKEN=${TOKEN}
+    # command: ["python3", "discordbot_test.py"]
+    command: python src/discordbot_test.py
+    tty: true
