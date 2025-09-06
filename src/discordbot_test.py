@@ -26,8 +26,10 @@ async def on_message(message):
     # nekoとしてのやつ
     if message.content == '/neko':
         await message.channel.send('にゃー')
+
     if message.content == '/cat':
         await message.channel.send('meow')
+        
     if message.content == '/naderu':
         await message.channel.send('purr...purr...')
 
