@@ -3,6 +3,8 @@ from discord.ext import commands
 import os
 import asyncio
 import websockets
+from dotenv import load_dotenv
+load_dotenv()
 
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 TOKEN = os.getenv("TOKEN")
@@ -35,10 +37,6 @@ async def websocketClient(uri):
 
     # connecting websocket server
     async with websockets.connect(uri) as websocket:
-        # if need auth token, send auth token here
-        await websocket.send(WS_TOKEN)
-        print("Connected.")
-        
         # receive message from server
         async def receive_msg():
             try:
@@ -55,6 +53,11 @@ async def websocketClient(uri):
                 print("[ERROR] Connection lost due to an unexpected error")
 
         try:
+            # if need auth token, send auth token here
+            await websocket.send(WS_TOKEN)
+            print("Connected.")
+            await channel.send("logged in.")
+
             async with asyncio.TaskGroup() as tg:
                 task = tg.create_task(receive_msg())
                 await task
