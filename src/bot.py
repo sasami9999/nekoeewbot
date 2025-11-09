@@ -11,16 +11,15 @@ from logging import (
     StreamHandler, getLogger
 )
 import logging
-from dotenv import load_dotenv
 # other module
 import eew
-
+# import .env
+from dotenv import load_dotenv
 load_dotenv()
 
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 TOKEN = os.getenv("TOKEN")
 WS_URI=os.getenv("WS_URI")
-WS_TOKEN=os.getenv("WS_TOKEN")
 LOGGING_LEVEL=os.getenv("LOGGING_LEVEL")
 
 # intents settings
@@ -82,6 +81,9 @@ async def websocketClient(uri):
                             
                             embedObj = eew.formatData(logger, data)
                             logger.debug("format data end.")
+
+                            if embedObj[0] is None:
+                                continue
 
                             if embedObj:
                                 await channel.send(

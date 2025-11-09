@@ -93,6 +93,7 @@ def createMap(logger: logging.Logger, latitude, longitude):
                     response.raise_for_status()
                 except Exception as e:
                     logger.error(f"failed get png: {e}")
+                    break
 
                 combinedPng.paste(Image.open(io.BytesIO(response.content)), (j * size, i * size))
 

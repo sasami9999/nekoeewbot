@@ -3,6 +3,14 @@ import discord
 import logging
 # other module
 import map
+import os
+
+# import .env
+from dotenv import load_dotenv
+load_dotenv()
+
+MIN_MENTION_SCALE=os.getenv("MIN_MENTION_SCALE")
+MIN_NORTIFY_SCALE=os.getenv("MIN_NORTIFY_SCALE")
 
 def scaleToString(scaleCode):
     scale_map = {
@@ -10,6 +18,13 @@ def scaleToString(scaleCode):
         45: '5弱', 50: '5強', 55: '6弱', 60: '6強', 70: '7'
     }
     return scale_map.get(scaleCode, '不明')
+
+def effectiveToString(effective):
+    effect_map = {
+        'None': 'なし', 'Unknown': '不明', 'Checking': '調査中', 'NonEffective': '若干の海面変動が予想されるが、被害の心配なし',
+        'Watch': '津波注意報', 'Warning': '津波予報(種類不明)'
+    }
+    return effect_map.get(effective, '不明')
 
 def formatData(logger: logging.Logger, data):
     code = data.get('code')
@@ -22,6 +37,14 @@ def formatData(logger: logging.Logger, data):
         hypo_name = hypo.get('name', '不明')
         magnitude = hypo.get('magnitude', -1)
         max_scale_code = eq.get('maxScale', -1)
+        tsunami = effectiveToString(eq.get('domesticTsunami', 'UnKnown'))
+
+        logger.info(f"hypo_name: {hypo_name}, magnitude: {magnitude}, max_scale_code: {max_scale_code}, tsunami: {tsunami}")
+        
+        # check need to notificatopn
+        if max_scale_code < int(MIN_NORTIFY_SCALE):
+            return ( None, None )
+
         max_scale_str = scaleToString(max_scale_code)
 
         time_str = eq.get('time', '不明')
@@ -36,29 +59,28 @@ def formatData(logger: logging.Logger, data):
         logger.debug("create embed start.")
 
         # create embed
-        mention = "<@everyone> "
+        mention = "@everyone "
         color = discord.Color.blue()
         if max_scale_code >= 50: # upper 5 or higher
             color = discord.Color.red()
         elif max_scale_code >= 40: # lower 4 or below
             color = discord.Color.orange()
 
-        title = mention if max_scale_code >= 50 or code == 556 else ""
-        title = title + "地震情報" if code == 551 else "緊急地震速報（警報）"
+        mention = mention if max_scale_code >= int(MIN_MENTION_SCALE) or code == 556 else ""
+        title = "地震情報" if code == 551 else "緊急地震速報（警報）"
 
         date_format = "%Y/%m/%d %H:%M:%S"
         embed = discord.Embed(
             title=title,
-            description=f"**最大震度: {max_scale_str}**",
+            description=f"{mention} **最大震度: {max_scale_str}**",
             color=color,
             timestamp=datetime.strptime(time_str, date_format) if time_str != '不明' else discord.utils.utcnow()
         )
 
         logger.debug("embed obj created.")
 
-        embed.add_field(name="震源地", value=hypo_name, inline=True)
-        embed.add_field(name="緯度", value=latitude, inline=True)
-        embed.add_field(name="経度", value=longitude, inline=True)
+        embed.add_field(name="震源地(緯度 / 経度)", value=f"{hypo_name}({latitude} / {longitude})", inline=True)
+        embed.add_field(name="津波の影響", value=tsunami, inline=True)
         embed.add_field(name="マグニチュード", value=f"M{magnitude:.1f}" if magnitude != -1 else "不明", inline=True)
         embed.set_footer(text="Created by nekoeewbot based on data from JMA and GSI Map Tiles.")
         
