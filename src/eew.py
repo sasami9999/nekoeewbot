@@ -30,7 +30,7 @@ def formatData(logger: logging.Logger, data):
     code = data.get('code')
     logger.debug("---------- format data started. ----------")
     logger.info(f"code: {code}")
-    
+
     if (code == 551 or code == 556) and data.get('earthquake'):
         eq = data['earthquake']
         hypo = eq.get('hypocenter', {})
@@ -94,5 +94,6 @@ def formatData(logger: logging.Logger, data):
         return ( embed, mapFile, mention )
     if code == 554 and data.get('issue', {}).get('type') == 'Warning':
         logger.info(f"received Warning data. code:554 detail:{data}")
-        return ( None, None )
-
+        return ( None, None, False )
+    else:
+        return ( None, None, False )
