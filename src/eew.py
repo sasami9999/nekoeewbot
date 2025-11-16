@@ -28,8 +28,9 @@ def effectiveToString(effective):
 
 def formatData(logger: logging.Logger, data):
     code = data.get('code')
-    logger.debug("format data started.")
-
+    logger.debug("---------- format data started. ----------")
+    logger.info(f"code: {code}")
+    
     if (code == 551 or code == 556) and data.get('earthquake'):
         eq = data['earthquake']
         hypo = eq.get('hypocenter', {})
@@ -43,7 +44,7 @@ def formatData(logger: logging.Logger, data):
         
         # check need to notificatopn
         if max_scale_code < int(MIN_NORTIFY_SCALE):
-            return ( None, None )
+            return ( None, None, False )
 
         max_scale_str = scaleToString(max_scale_code)
 
@@ -52,27 +53,27 @@ def formatData(logger: logging.Logger, data):
         latitude = hypo.get('latitude', -1)
         longitude = hypo.get('longitude', -1)
 
+        if latitude < 0 or longitude < 0:
+            return ( None, None, False )
+
         logger.debug("get properties done.")
 
         mapFile = map.createMap(logger, latitude, longitude)
 
-        logger.debug("create embed start.")
-
         # create embed
-        mention = "@everyone "
         color = discord.Color.blue()
         if max_scale_code >= 50: # upper 5 or higher
             color = discord.Color.red()
         elif max_scale_code >= 40: # lower 4 or below
             color = discord.Color.orange()
 
-        mention = mention if max_scale_code >= int(MIN_MENTION_SCALE) or code == 556 else ""
+        mention = True if max_scale_code >= int(MIN_MENTION_SCALE) or code == 556 else False
         title = "地震情報" if code == 551 else "緊急地震速報（警報）"
 
         date_format = "%Y/%m/%d %H:%M:%S"
         embed = discord.Embed(
             title=title,
-            description=f"{mention} **最大震度: {max_scale_str}**",
+            description=f"**最大震度: {max_scale_str}**",
             color=color,
             timestamp=datetime.strptime(time_str, date_format) if time_str != '不明' else discord.utils.utcnow()
         )
@@ -90,7 +91,7 @@ def formatData(logger: logging.Logger, data):
 
         logger.debug("set image done.")
 
-        return ( embed, mapFile )
+        return ( embed, mapFile, mention )
     if code == 554 and data.get('issue', {}).get('type') == 'Warning':
         logger.info(f"received Warning data. code:554 detail:{data}")
         return ( None, None )

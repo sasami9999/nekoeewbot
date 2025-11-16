@@ -19,7 +19,6 @@ def latLonToPixelXY(lat, lon, zoom):
 
 
 def createRedCrossSVG(logger: logging.Logger, imageSize, x_center, y_center, globalPixel):
-    logger.debug("create svg start.")
 
     topLeftTileX = x_center - 1
     topLeftTileY = y_center - 1
@@ -35,12 +34,11 @@ def createRedCrossSVG(logger: logging.Logger, imageSize, x_center, y_center, glo
         <line x1="{markerX}" y1="{markerY - 10}" x2="{markerX}" y2="{markerY + 10}" stroke="red" stroke-width="4"/> \
         </svg>'
     
-    logger.debug(f"create svg end. content={crossSVG}")
+    logger.debug("create svg end.")
     return crossSVG
 
 
 def createMap(logger: logging.Logger, latitude, longitude):
-    logger.debug("create map start.")
 
     zoom = 9
     size = 256
@@ -75,7 +73,6 @@ def createMap(logger: logging.Logger, latitude, longitude):
         # create cross red svg
         svg = createRedCrossSVG(logger, imageSize, x_center, y_center, latLonToPixelXY(latitude, longitude, zoom))
         
-        logger.debug("get PNG and combine start.")
         combinedPng = Image.new('RGB', (imageSize, imageSize), color="white")
         # get png map
         for dy in range(-1, 2):
@@ -100,7 +97,6 @@ def createMap(logger: logging.Logger, latitude, longitude):
         logger.debug("get PNG and combine end.")
 
         try:
-            logger.debug("PNG and SVG combine start.")
             # svg to png
             svgToPng = svg2png(
                 bytestring=svg.encode('utf-8'),

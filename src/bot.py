@@ -1,4 +1,5 @@
 # public library
+import sys
 import discord
 from discord.ext import commands
 import os
@@ -31,7 +32,7 @@ intents.message_content = True
 
 # logging settings
 logger: Logger = getLogger("botLogger")
-logHandler = StreamHandler()
+logHandler = StreamHandler(sys.stdout)
 logHandler.setFormatter(Formatter(BASIC_FORMAT))
 logging.lastResort.setLevel(DEBUG)
 logging.lastResort.setFormatter(Formatter(BASIC_FORMAT))
@@ -80,14 +81,19 @@ async def websocketClient(uri):
                             data = json.loads(message)
                             
                             embedObj = eew.formatData(logger, data)
-                            logger.debug("format data end.")
+                            logger.debug("---------- format data end. ----------")
 
                             if embedObj[0] is None:
                                 continue
 
+                            logger.debug(f"is mention: {embedObj[2]}")
+                            isMention = embedObj[2]
+                            desc = embedObj[0].description
+                            hypoName = embedObj[0].fields[0].value
+
                             if embedObj:
                                 await channel.send(
-                                    content=None, 
+                                    content=f"@everyone {desc} {hypoName}" if isMention else None, 
                                     embed=embedObj[0],
                                     file=embedObj[1]
                                 )
