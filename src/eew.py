@@ -31,7 +31,7 @@ def formatData(logger: logging.Logger, data):
     logger.debug("---------- format data started. ----------")
     logger.info(f"code: {code}")
 
-    if (code == 551 or code == 556) and data.get('earthquake'):
+    if (code == 551 or code == 556 or code == 561) and data.get('earthquake'):
         eq = data['earthquake']
         hypo = eq.get('hypocenter', {})
 
@@ -69,6 +69,7 @@ def formatData(logger: logging.Logger, data):
 
         mention = True if max_scale_code >= int(MIN_MENTION_SCALE) or code == 556 else False
         title = "地震情報" if code == 551 else "緊急地震速報（警報）"
+        title = "地震感知情報" if code == 561 else title
 
         date_format = "%Y/%m/%d %H:%M:%S"
         embed = discord.Embed(
