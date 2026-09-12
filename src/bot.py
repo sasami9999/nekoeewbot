@@ -99,10 +99,10 @@ async def websocketClient(uri):
                                 )
                         except json.JSONDecodeError:
                             logger.error(f"decode json fail!!!: {message}")
-                            break
+                            continue
                         except Exception as e:
                             logger.error(f"processing msg error!!!: {e}")
-                            break
+                            continue
         except websockets.exceptions.ConnectionClosed as e:
             logger.warning(f"WebSocket disconnected!!!: {e}")
         except Exception as e:
