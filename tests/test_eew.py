@@ -167,3 +167,30 @@ def test_duplicate_event_id_is_detected():
     assert eew.isDuplicateEvent("abc") is True
     assert eew.isDuplicateEvent(None) is False
     assert eew.isDuplicateEvent("") is False
+
+
+def test_parse_time_uses_jst():
+    from datetime import timezone
+
+    dt = eew.parseTime("2023/04/01 12:00:00")
+    assert dt.tzinfo is not None
+    assert dt.utcoffset().total_seconds() == 9 * 3600
+    assert dt.hour == 12
+    assert dt.astimezone(timezone.utc).hour == 3
+
+
+def test_parse_time_with_milliseconds_uses_jst():
+    dt = eew.parseTime("2023/04/01 12:00:00.123")
+    assert dt.tzinfo is not None
+    assert dt.utcoffset().total_seconds() == 9 * 3600
+    assert dt.microsecond == 123000
+
+
+def test_embed_timestamp_keeps_jst_instant(mock_create_map):
+    embed, _, _ = eew.formatData(
+        logger, sample_quake(code=551, max_scale=40, time_str="2023/04/01 12:00:00")
+    )
+    assert embed is not None
+    assert embed.timestamp is not None
+    assert embed.timestamp.utcoffset().total_seconds() == 9 * 3600
+    assert embed.timestamp.hour == 12
