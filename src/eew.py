@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections import OrderedDict
 import discord
 import logging
 # other module
@@ -11,12 +12,24 @@ from time import monotonic
 from dotenv import load_dotenv
 load_dotenv()
 
-MIN_MENTION_SCALE=os.getenv("MIN_MENTION_SCALE")
-MIN_NORTIFY_SCALE=os.getenv("MIN_NORTIFY_SCALE")
-USERQUAKE_COOLDOWN_SEC=int(os.getenv("USERQUAKE_COOLDOWN_SEC", "300"))
+def envInt(name, default):
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+MIN_MENTION_SCALE = envInt("MIN_MENTION_SCALE", 50)
+MIN_NORTIFY_SCALE = envInt("MIN_NORTIFY_SCALE", 30)
+USERQUAKE_COOLDOWN_SEC = envInt("USERQUAKE_COOLDOWN_SEC", 300)
+SEEN_EVENT_LIMIT = envInt("SEEN_EVENT_LIMIT", 1000)
 
 # area_code -> last notified monotonic time
 _last_userquake_by_area = {}
+# event id -> None (insertion-ordered for eviction)
+_seen_event_ids = OrderedDict()
 
 def scaleToString(scaleCode):
     scale_map = {
@@ -42,13 +55,24 @@ def parseTime(time_str):
             continue
     return discord.utils.utcnow()
 
-def canNotifyUserquake(area_code):
-    now = monotonic()
-    last = _last_userquake_by_area.get(area_code)
-    if last is not None and (now - last) < USERQUAKE_COOLDOWN_SEC:
+def isDuplicateEvent(event_id):
+    if not event_id:
         return False
-    _last_userquake_by_area[area_code] = now
-    return True
+    if event_id in _seen_event_ids:
+        return True
+    _seen_event_ids[event_id] = None
+    while len(_seen_event_ids) > SEEN_EVENT_LIMIT:
+        _seen_event_ids.popitem(last=False)
+    return False
+
+def isUserquakeInCooldown(area_code):
+    last = _last_userquake_by_area.get(area_code)
+    return last is not None and (monotonic() - last) < USERQUAKE_COOLDOWN_SEC
+
+def markUserquakeNotified(area_code):
+    if area_code is None:
+        return
+    _last_userquake_by_area[area_code] = monotonic()
 
 def formatUserquake(logger: logging.Logger, data):
     area_code = data.get('area')
@@ -56,7 +80,7 @@ def formatUserquake(logger: logging.Logger, data):
         logger.warning(f"561 missing area. detail:{data}")
         return ( None, None, False )
 
-    if not canNotifyUserquake(area_code):
+    if isUserquakeInCooldown(area_code):
         logger.info(
             f"skip 561 for area {area_code}: "
             f"within cooldown {USERQUAKE_COOLDOWN_SEC}s"
@@ -110,7 +134,7 @@ def formatData(logger: logging.Logger, data):
         logger.info(f"hypo_name: {hypo_name}, magnitude: {magnitude}, max_scale_code: {max_scale_code}, tsunami: {tsunami}")
         
         # check need to notificatopn
-        if max_scale_code < int(MIN_NORTIFY_SCALE):
+        if max_scale_code < MIN_NORTIFY_SCALE:
             return ( None, None, False )
 
         max_scale_str = scaleToString(max_scale_code)
@@ -134,7 +158,7 @@ def formatData(logger: logging.Logger, data):
         elif max_scale_code >= 40: # lower 4 or below
             color = discord.Color.orange()
 
-        mention = True if max_scale_code >= int(MIN_MENTION_SCALE) or code == 556 else False
+        mention = True if max_scale_code >= MIN_MENTION_SCALE or code == 556 else False
         title = "地震情報" if code == 551 else "緊急地震速報（警報）"
 
         embed = discord.Embed(
@@ -160,8 +184,11 @@ def formatData(logger: logging.Logger, data):
             logger.warning("map creation failed; sending embed without map image.")
 
         return ( embed, mapFile, mention )
-    if code == 554 and data.get('issue', {}).get('type') == 'Warning':
-        logger.info(f"received Warning data. code:554 detail:{data}")
+    if code == 554:
+        # EEWDetection: top-level type like "Full" / "Chime ..."
+        logger.info(
+            f"received EEW detection. code:554 type:{data.get('type')} detail:{data}"
+        )
         return ( None, None, False )
     else:
         return ( None, None, False )

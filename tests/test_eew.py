@@ -19,8 +19,9 @@ def sample_quake(
     hypo_name="東京湾",
     time_str="2023/04/01 12:00:00",
     tsunami="None",
+    event_id=None,
 ):
-    return {
+    payload = {
         "code": code,
         "earthquake": {
             "time": time_str,
@@ -34,6 +35,18 @@ def sample_quake(
             },
         },
     }
+    if event_id is not None:
+        payload["id"] = event_id
+    return payload
+
+
+@pytest.fixture(autouse=True)
+def reset_eew_runtime_state():
+    eew._last_userquake_by_area.clear()
+    eew._seen_event_ids.clear()
+    yield
+    eew._last_userquake_by_area.clear()
+    eew._seen_event_ids.clear()
 
 
 @pytest.fixture
@@ -55,6 +68,13 @@ def test_effective_to_string():
     assert eew.effectiveToString("None") == "なし"
     assert eew.effectiveToString("Watch") == "津波注意報"
     assert eew.effectiveToString("UnKnown") == "不明"
+
+
+def test_env_int_defaults_and_invalid(monkeypatch):
+    monkeypatch.delenv("MIN_NORTIFY_SCALE", raising=False)
+    monkeypatch.setenv("MIN_MENTION_SCALE", "not-a-number")
+    assert eew.envInt("MIN_NORTIFY_SCALE", 30) == 30
+    assert eew.envInt("MIN_MENTION_SCALE", 50) == 50
 
 
 def test_format_data_skips_below_notify_scale(mock_create_map):
@@ -105,9 +125,9 @@ def test_format_data_unsupported_code(mock_create_map):
     assert mention is False
 
 
-def test_format_data_554_warning_returns_none(mock_create_map):
+def test_format_data_554_detection_returns_none(mock_create_map):
     embed, map_file, mention = eew.formatData(
-        logger, {"code": 554, "issue": {"type": "Warning"}}
+        logger, {"code": 554, "type": "Full"}
     )
     assert embed is None
     assert map_file is None
@@ -121,3 +141,22 @@ def test_format_data_sends_without_map_when_create_map_fails(monkeypatch):
     assert map_file is None
     assert mention is False
     assert embed.image is None or getattr(embed.image, "url", None) in (None, "")
+
+
+def test_userquake_cooldown_applies_only_after_mark(mock_create_map):
+    payload = {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
+    first, _, _ = eew.formatData(logger, payload)
+    second_before_mark, _, _ = eew.formatData(logger, payload)
+    assert first is not None
+    assert second_before_mark is not None
+
+    eew.markUserquakeNotified(250)
+    third_after_mark, _, _ = eew.formatData(logger, payload)
+    assert third_after_mark is None
+
+
+def test_duplicate_event_id_is_detected():
+    assert eew.isDuplicateEvent("abc") is False
+    assert eew.isDuplicateEvent("abc") is True
+    assert eew.isDuplicateEvent(None) is False
+    assert eew.isDuplicateEvent("") is False
