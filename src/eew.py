@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from collections import OrderedDict
-from zoneinfo import ZoneInfo
 import discord
 import logging
 # other module
@@ -9,7 +8,8 @@ import eq_map
 import os
 from time import monotonic
 
-JST = ZoneInfo("Asia/Tokyo")
+# P2Pquake timestamps are Japan Standard Time (no DST).
+JST = timezone(timedelta(hours=9))
 
 # import .env
 from dotenv import load_dotenv
