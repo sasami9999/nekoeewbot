@@ -5,7 +5,6 @@ import io
 import math
 import requests
 from PIL import Image
-from cairosvg import svg2png
 
 def latLonToPixelXY(lat, lon, zoom):
     tileSize = 256
@@ -97,6 +96,8 @@ def createMap(logger: logging.Logger, latitude, longitude):
         logger.debug("get PNG and combine end.")
 
         try:
+            from cairosvg import svg2png
+
             # svg to png
             svgToPng = svg2png(
                 bytestring=svg.encode('utf-8'),
