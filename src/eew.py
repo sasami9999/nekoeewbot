@@ -1,5 +1,6 @@
 from datetime import datetime
 from collections import OrderedDict
+from zoneinfo import ZoneInfo
 import discord
 import logging
 # other module
@@ -7,6 +8,8 @@ import areas
 import eq_map
 import os
 from time import monotonic
+
+JST = ZoneInfo("Asia/Tokyo")
 
 # import .env
 from dotenv import load_dotenv
@@ -47,11 +50,12 @@ def effectiveToString(effective):
     return effect_map.get(effective, '不明')
 
 def parseTime(time_str):
+    # P2Pquake timestamps are Japan local time without an offset.
     if not time_str or time_str == '不明':
         return discord.utils.utcnow()
     for fmt in ("%Y/%m/%d %H:%M:%S.%f", "%Y/%m/%d %H:%M:%S"):
         try:
-            return datetime.strptime(time_str, fmt)
+            return datetime.strptime(time_str, fmt).replace(tzinfo=JST)
         except ValueError:
             continue
     return discord.utils.utcnow()
