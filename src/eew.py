@@ -153,9 +153,11 @@ def formatData(logger: logging.Logger, data):
         
         logger.debug("add field done.")
 
-        embed.set_image(url=f"attachment://{mapFile.filename}")
-
-        logger.debug("set image done.")
+        if mapFile:
+            embed.set_image(url=f"attachment://{mapFile.filename}")
+            logger.debug("set image done.")
+        else:
+            logger.warning("map creation failed; sending embed without map image.")
 
         return ( embed, mapFile, mention )
     if code == 554 and data.get('issue', {}).get('type') == 'Warning':

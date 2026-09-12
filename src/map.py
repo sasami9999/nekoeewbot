@@ -38,39 +38,39 @@ def createRedCrossSVG(logger: logging.Logger, imageSize, x_center, y_center, glo
 
 
 def createMap(logger: logging.Logger, latitude, longitude):
+    try:
+        zoom = 9
+        size = 256
+        tileSet = 'pale'
+        tileCount = 3
+        imageSize = size * tileCount
 
-    zoom = 9
-    size = 256
-    tileSet = 'pale'
-    tileCount = 3
-    imageSize = size * tileCount
-
-    # calculation center of map
-    n = pow(2, zoom)
-    x_center = math.floor((longitude + 180) / 360 * n)
-    
-    MAX_LAT = 85.05112878
-    if latitude > MAX_LAT:
-        latitude = MAX_LAT
-    elif latitude < -MAX_LAT:
-        latitude = -MAX_LAT
+        # calculation center of map
+        n = pow(2, zoom)
+        x_center = math.floor((longitude + 180) / 360 * n)
         
-    latRad = latitude * math.pi / 180
-    
-    log_arg = math.tan(latRad) + 1 / math.cos(latRad)
-    
-    if log_arg <= 0:
-        log_arg = 1e-10 
+        MAX_LAT = 85.05112878
+        if latitude > MAX_LAT:
+            latitude = MAX_LAT
+        elif latitude < -MAX_LAT:
+            latitude = -MAX_LAT
+            
+        latRad = latitude * math.pi / 180
         
-    y_center = math.floor(
-        (1 - math.log(log_arg) / math.pi) / 2 * n
-    )
+        log_arg = math.tan(latRad) + 1 / math.cos(latRad)
+        
+        if log_arg <= 0:
+            log_arg = 1e-10 
+            
+        y_center = math.floor(
+            (1 - math.log(log_arg) / math.pi) / 2 * n
+        )
 
-    logger.debug("calculation done.")
+        logger.debug("calculation done.")
 
-    if math.nan != x_center and math.nan != y_center:
-        # create cross red svg
-        svg = createRedCrossSVG(logger, imageSize, x_center, y_center, latLonToPixelXY(latitude, longitude, zoom))
+        svg = createRedCrossSVG(
+            logger, imageSize, x_center, y_center, latLonToPixelXY(latitude, longitude, zoom)
+        )
         
         combinedPng = Image.new('RGB', (imageSize, imageSize), color="white")
         # get png map
@@ -89,7 +89,7 @@ def createMap(logger: logging.Logger, latitude, longitude):
                     response.raise_for_status()
                 except Exception as e:
                     logger.error(f"failed get png: {e}")
-                    break
+                    return None
 
                 combinedPng.paste(Image.open(io.BytesIO(response.content)), (j * size, i * size))
 
@@ -119,3 +119,6 @@ def createMap(logger: logging.Logger, latitude, longitude):
         buffered.seek(0)
         logger.debug("create map end.")
         return discord.File(buffered, filename=f'map_{epocTime:.0f}.png')
+    except Exception as e:
+        logger.error(f"failed create map: {e}")
+        return None
