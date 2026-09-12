@@ -91,12 +91,13 @@ async def websocketClient(uri):
                             desc = embedObj[0].description
                             hypoName = embedObj[0].fields[0].value
 
-                            if embedObj:
-                                await channel.send(
-                                    content=f"@everyone {desc} {hypoName}" if isMention else None, 
-                                    embed=embedObj[0],
-                                    file=embedObj[1]
-                                )
+                            send_kwargs = {
+                                "content": f"@everyone {desc} {hypoName}" if isMention else None,
+                                "embed": embedObj[0],
+                            }
+                            if embedObj[1] is not None:
+                                send_kwargs["file"] = embedObj[1]
+                            await channel.send(**send_kwargs)
                         except json.JSONDecodeError:
                             logger.error(f"decode json fail!!!: {message}")
                             break
