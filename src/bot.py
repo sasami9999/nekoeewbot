@@ -79,6 +79,10 @@ async def websocketClient(uri):
                     async for message in websocket:
                         try:
                             data = json.loads(message)
+
+                            if eew.isDuplicateEvent(data.get("id")):
+                                logger.debug(f"skip duplicate event id={data.get('id')}")
+                                continue
                             
                             embedObj = eew.formatData(logger, data)
                             logger.debug("---------- format data end. ----------")
@@ -98,6 +102,9 @@ async def websocketClient(uri):
                             if embedObj[1] is not None:
                                 send_kwargs["file"] = embedObj[1]
                             await channel.send(**send_kwargs)
+
+                            if data.get("code") == 561:
+                                eew.markUserquakeNotified(data.get("area"))
                         except json.JSONDecodeError:
                             logger.error(f"decode json fail!!!: {message}")
                             continue
