@@ -112,3 +112,12 @@ def test_format_data_554_warning_returns_none(mock_create_map):
     assert embed is None
     assert map_file is None
     assert mention is False
+
+
+def test_format_data_sends_without_map_when_create_map_fails(monkeypatch):
+    monkeypatch.setattr(eew.map, "createMap", lambda *_args, **_kwargs: None)
+    embed, map_file, mention = eew.formatData(logger, sample_quake(code=551, max_scale=40))
+    assert embed is not None
+    assert map_file is None
+    assert mention is False
+    assert embed.image is None or getattr(embed.image, "url", None) in (None, "")

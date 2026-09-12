@@ -2,8 +2,8 @@ services:
   bot:
     build: .
     volumes:
-      - ./src:/usr/src/app:rw
-    environment:
-      - TOKEN=${TOKEN}
+      - ./src:/workdir/src:rw
+    env_file:
+      - .env
     command: python src/bot.py
     tty: true
