@@ -84,7 +84,8 @@ async def websocketClient(uri):
                                 logger.debug(f"skip duplicate event id={data.get('id')}")
                                 continue
                             
-                            embedObj = eew.formatData(logger, data)
+                            # formatData may fetch map tiles synchronously; keep the event loop free
+                            embedObj = await asyncio.to_thread(eew.formatData, logger, data)
                             logger.debug("---------- format data end. ----------")
 
                             if embedObj[0] is None:
@@ -157,5 +158,5 @@ async def on_message(message):
     if message.content == '/naderu':
         await message.channel.send('purr...purr...')
 
-# wake bot and connecing channel
+# wake bot and connecting channel
 bot.run(TOKEN)
