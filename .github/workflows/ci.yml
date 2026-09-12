@@ -29,5 +29,5 @@ jobs:
       - name: Run tests
         run: pytest
         env:
-          MIN_NORTIFY_SCALE: "30"
+          MIN_NOTIFY_SCALE: "30"
           MIN_MENTION_SCALE: "50"

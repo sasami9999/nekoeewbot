@@ -54,7 +54,7 @@ def mock_create_map(monkeypatch):
     def fake_create_map(_logger, _lat, _lon):
         return types.SimpleNamespace(filename="map_test.png")
 
-    monkeypatch.setattr(eew.map, "createMap", fake_create_map)
+    monkeypatch.setattr(eew.eq_map, "createMap", fake_create_map)
 
 
 def test_scale_to_string():
@@ -71,10 +71,17 @@ def test_effective_to_string():
 
 
 def test_env_int_defaults_and_invalid(monkeypatch):
+    monkeypatch.delenv("MIN_NOTIFY_SCALE", raising=False)
     monkeypatch.delenv("MIN_NORTIFY_SCALE", raising=False)
     monkeypatch.setenv("MIN_MENTION_SCALE", "not-a-number")
-    assert eew.envInt("MIN_NORTIFY_SCALE", 30) == 30
+    assert eew.envInt("MIN_NOTIFY_SCALE", 30) == 30
     assert eew.envInt("MIN_MENTION_SCALE", 50) == 50
+
+
+def test_notify_scale_prefers_corrected_env_name(monkeypatch):
+    monkeypatch.setenv("MIN_NORTIFY_SCALE", "10")
+    monkeypatch.setenv("MIN_NOTIFY_SCALE", "40")
+    assert eew.envInt("MIN_NOTIFY_SCALE", eew.envInt("MIN_NORTIFY_SCALE", 30)) == 40
 
 
 def test_format_data_skips_below_notify_scale(mock_create_map):
@@ -135,7 +142,7 @@ def test_format_data_554_detection_returns_none(mock_create_map):
 
 
 def test_format_data_sends_without_map_when_create_map_fails(monkeypatch):
-    monkeypatch.setattr(eew.map, "createMap", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(eew.eq_map, "createMap", lambda *_args, **_kwargs: None)
     embed, map_file, mention = eew.formatData(logger, sample_quake(code=551, max_scale=40))
     assert embed is not None
     assert map_file is None

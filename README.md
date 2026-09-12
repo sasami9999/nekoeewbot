@@ -22,7 +22,7 @@ Let's prepare a cat image for the bot's icon!
     CHANNEL_ID="1234567890"
     WS_URI="wss://api-realtime-sandbox.p2pquake.net/v2/ws"
     LOGGING_LEVEL="INFO"
-    MIN_NORTIFY_SCALE=30
+    MIN_NOTIFY_SCALE=30
     MIN_MENTION_SCALE=50
     USERQUAKE_COOLDOWN_SEC=300
     ```
@@ -39,11 +39,11 @@ Let's prepare a cat image for the bot's icon!
 | `CHANNEL_ID` | Yes | Discord channel ID used for alerts. |
 | `WS_URI` | Yes | P2Pquake WebSocket endpoint. Use `wss://api-realtime-sandbox.p2pquake.net/v2/ws` for sandbox testing, or `wss://api.p2pquake.net/v2/ws` for production. |
 | `LOGGING_LEVEL` | No | Log level: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. Defaults to `WARNING` if unset or unrecognized. |
-| `MIN_NORTIFY_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to post an earthquake / EEW alert. Events below this value are ignored. Note the spelling `NORTIFY`. |
+| `MIN_NOTIFY_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to post an earthquake / EEW alert. Events below this value are ignored. `MIN_NORTIFY_SCALE` is still accepted as a compatibility alias. |
 | `MIN_MENTION_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to mention `@everyone`. EEW alerts (`code` 556) always mention. |
 | `USERQUAKE_COOLDOWN_SEC` | No | Cooldown in seconds before another userquake (`code` 561) alert is posted for the **same area**. Default: `300`. |
 
-Intensity codes used by `MIN_NORTIFY_SCALE` / `MIN_MENTION_SCALE`:
+Intensity codes used by `MIN_NOTIFY_SCALE` / `MIN_MENTION_SCALE`:
 
 | Code | Intensity |
 |---|---|

@@ -4,7 +4,7 @@ import discord
 import logging
 # other module
 import areas
-import map
+import eq_map
 import os
 from time import monotonic
 
@@ -22,7 +22,8 @@ def envInt(name, default):
         return default
 
 MIN_MENTION_SCALE = envInt("MIN_MENTION_SCALE", 50)
-MIN_NORTIFY_SCALE = envInt("MIN_NORTIFY_SCALE", 30)
+# Prefer MIN_NOTIFY_SCALE; keep MIN_NORTIFY_SCALE as a compatibility alias.
+MIN_NOTIFY_SCALE = envInt("MIN_NOTIFY_SCALE", envInt("MIN_NORTIFY_SCALE", 30))
 USERQUAKE_COOLDOWN_SEC = envInt("USERQUAKE_COOLDOWN_SEC", 300)
 SEEN_EVENT_LIMIT = envInt("SEEN_EVENT_LIMIT", 1000)
 
@@ -95,7 +96,7 @@ def formatUserquake(logger: logging.Logger, data):
 
     mapFile = None
     if area:
-        mapFile = map.createMap(logger, area['lat'], area['lon'])
+        mapFile = eq_map.createMap(logger, area['lat'], area['lon'])
 
     embed = discord.Embed(
         title="地震感知情報",
@@ -133,8 +134,8 @@ def formatData(logger: logging.Logger, data):
 
         logger.info(f"hypo_name: {hypo_name}, magnitude: {magnitude}, max_scale_code: {max_scale_code}, tsunami: {tsunami}")
         
-        # check need to notificatopn
-        if max_scale_code < MIN_NORTIFY_SCALE:
+        # check need to notification
+        if max_scale_code < MIN_NOTIFY_SCALE:
             return ( None, None, False )
 
         max_scale_str = scaleToString(max_scale_code)
@@ -149,7 +150,7 @@ def formatData(logger: logging.Logger, data):
 
         logger.debug("get properties done.")
 
-        mapFile = map.createMap(logger, latitude, longitude)
+        mapFile = eq_map.createMap(logger, latitude, longitude)
 
         # create embed
         color = discord.Color.blue()
