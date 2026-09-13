@@ -84,6 +84,16 @@ def parseTime(time_str):
             continue
     return discord.utils.utcnow()
 
+def formatDisplayTime(time_str):
+    if not time_str or time_str == '不明':
+        return '不明'
+    for fmt in ("%Y/%m/%d %H:%M:%S.%f", "%Y/%m/%d %H:%M:%S"):
+        try:
+            return datetime.strptime(time_str, fmt).strftime("%Y/%m/%d %H:%M:%S")
+        except ValueError:
+            continue
+    return time_str
+
 def isDuplicateEvent(event_id):
     if not event_id:
         return False
@@ -107,41 +117,24 @@ def formatUserquake(logger: logging.Logger, data):
     area_code = data.get('area')
     if area_code is None:
         logger.warning(f"561 missing area. detail:{data}")
-        return ( None, None, False )
+        return ( None, None, False, None )
 
     if isUserquakeInCooldown(area_code):
         logger.info(
             f"skip 561 for area {area_code}: "
             f"within cooldown {USERQUAKE_COOLDOWN_SEC}s"
         )
-        return ( None, None, False )
+        return ( None, None, False, None )
 
     area = areas.get_area(area_code)
     area_name = area['name'] if area else f"地域コード {area_code}"
     time_str = data.get('time', '不明')
+    display_time = formatDisplayTime(time_str)
 
     logger.info(f"userquake area: {area_code} ({area_name})")
 
-    mapFile = None
-    if area:
-        mapFile = eq_map.createMap(logger, area['lat'], area['lon'])
-
-    embed = discord.Embed(
-        title="地震感知情報",
-        description=f"**{area_name}で揺れを感知**",
-        color=discord.Color.dark_teal(),
-        timestamp=parseTime(time_str)
-    )
-    embed.add_field(name="感知地域", value=area_name, inline=True)
-    if area and area.get('pref'):
-        embed.add_field(name="都道府県", value=area['pref'], inline=True)
-    embed.add_field(name="地域コード", value=str(area_code), inline=True)
-    embed.set_footer(text="Created by nekoeewbot based on data from P2Pquake and GSI Map Tiles.")
-
-    if mapFile:
-        embed.set_image(url=f"attachment://{mapFile.filename}")
-
-    return ( embed, mapFile, False )
+    content = f"【地震感知情報】{area_name}で揺れを感知 / 日時: {display_time}"
+    return ( None, None, False, content )
 
 def formatData(logger: logging.Logger, data):
     code = data.get('code')
@@ -150,7 +143,7 @@ def formatData(logger: logging.Logger, data):
 
     if code in SUPPORTED_NOTIFY_CODES and code not in NOTIFY_CODES:
         logger.info(f"skip code {code}: not enabled in NOTIFY_CODES={sorted(NOTIFY_CODES)}")
-        return ( None, None, False )
+        return ( None, None, False, None )
 
     if code == 561:
         return formatUserquake(logger, data)
@@ -168,7 +161,7 @@ def formatData(logger: logging.Logger, data):
         
         # check need to notification
         if max_scale_code < MIN_NOTIFY_SCALE:
-            return ( None, None, False )
+            return ( None, None, False, None )
 
         max_scale_str = scaleToString(max_scale_code)
 
@@ -178,7 +171,7 @@ def formatData(logger: logging.Logger, data):
         longitude = hypo.get('longitude', -1)
 
         if latitude < 0 or longitude < 0:
-            return ( None, None, False )
+            return ( None, None, False, None )
 
         logger.debug("get properties done.")
 
@@ -216,12 +209,12 @@ def formatData(logger: logging.Logger, data):
         else:
             logger.warning("map creation failed; sending embed without map image.")
 
-        return ( embed, mapFile, mention )
+        return ( embed, mapFile, mention, None )
     if code == 554:
         # EEWDetection: top-level type like "Full" / "Chime ..."
         logger.info(
             f"received EEW detection. code:554 type:{data.get('type')} detail:{data}"
         )
-        return ( None, None, False )
+        return ( None, None, False, None )
     else:
-        return ( None, None, False )
+        return ( None, None, False, None )

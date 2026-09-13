@@ -88,21 +88,24 @@ async def websocketClient(uri):
                             embedObj = await asyncio.to_thread(eew.formatData, logger, data)
                             logger.debug("---------- format data end. ----------")
 
-                            if embedObj[0] is None:
+                            embed, mapFile, isMention, content = embedObj
+
+                            if content:
+                                await channel.send(content=content)
+                            elif embed is None:
                                 continue
+                            else:
+                                logger.debug(f"is mention: {isMention}")
+                                desc = embed.description
+                                hypoName = embed.fields[0].value
 
-                            logger.debug(f"is mention: {embedObj[2]}")
-                            isMention = embedObj[2]
-                            desc = embedObj[0].description
-                            hypoName = embedObj[0].fields[0].value
-
-                            send_kwargs = {
-                                "content": f"@everyone {desc} {hypoName}" if isMention else None,
-                                "embed": embedObj[0],
-                            }
-                            if embedObj[1] is not None:
-                                send_kwargs["file"] = embedObj[1]
-                            await channel.send(**send_kwargs)
+                                send_kwargs = {
+                                    "content": f"@everyone {desc} {hypoName}" if isMention else None,
+                                    "embed": embed,
+                                }
+                                if mapFile is not None:
+                                    send_kwargs["file"] = mapFile
+                                await channel.send(**send_kwargs)
 
                             if data.get("code") == 561:
                                 eew.markUserquakeNotified(data.get("area"))
