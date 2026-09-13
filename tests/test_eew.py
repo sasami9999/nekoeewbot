@@ -44,9 +44,11 @@ def sample_quake(
 def reset_eew_runtime_state():
     eew._last_userquake_by_area.clear()
     eew._seen_event_ids.clear()
+    eew.NOTIFY_CODES = set(eew.SUPPORTED_NOTIFY_CODES)
     yield
     eew._last_userquake_by_area.clear()
     eew._seen_event_ids.clear()
+    eew.NOTIFY_CODES = set(eew.SUPPORTED_NOTIFY_CODES)
 
 
 @pytest.fixture
@@ -82,6 +84,37 @@ def test_notify_scale_prefers_corrected_env_name(monkeypatch):
     monkeypatch.setenv("MIN_NORTIFY_SCALE", "10")
     monkeypatch.setenv("MIN_NOTIFY_SCALE", "40")
     assert eew.envInt("MIN_NOTIFY_SCALE", eew.envInt("MIN_NORTIFY_SCALE", 30)) == 40
+
+
+def test_parse_notify_codes_default_is_all_supported():
+    assert eew.parseNotifyCodes(None) == set(eew.SUPPORTED_NOTIFY_CODES)
+    assert eew.parseNotifyCodes("") == set(eew.SUPPORTED_NOTIFY_CODES)
+    assert eew.parseNotifyCodes("  ") == set(eew.SUPPORTED_NOTIFY_CODES)
+
+
+def test_parse_notify_codes_filters_supported_only():
+    assert eew.parseNotifyCodes("551,556") == {551, 556}
+    assert eew.parseNotifyCodes("551, 561, 999, abc") == {551, 561}
+    assert eew.parseNotifyCodes("999,abc") == set(eew.SUPPORTED_NOTIFY_CODES)
+
+
+def test_format_data_skips_disabled_notify_code(mock_create_map):
+    eew.NOTIFY_CODES = {551, 556}
+    embed, map_file, mention = eew.formatData(
+        logger, {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
+    )
+    assert embed is None
+    assert map_file is None
+    assert mention is False
+
+
+def test_format_data_allows_enabled_notify_code(mock_create_map):
+    eew.NOTIFY_CODES = {561}
+    embed, map_file, mention = eew.formatData(
+        logger, {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
+    )
+    assert embed is not None
+    assert mention is False
 
 
 def test_format_data_skips_below_notify_scale(mock_create_map):

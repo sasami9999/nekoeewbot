@@ -25,6 +25,7 @@ Let's prepare a cat image for the bot's icon!
     MIN_NOTIFY_SCALE=30
     MIN_MENTION_SCALE=50
     USERQUAKE_COOLDOWN_SEC=300
+    NOTIFY_CODES=551,556,561
     ```
 1. Run `build.sh` in the root directory to build the Dockerfile.
 1. Running `up.sh` in the root directory starts Docker.
@@ -42,6 +43,7 @@ Let's prepare a cat image for the bot's icon!
 | `MIN_NOTIFY_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to post an earthquake / EEW alert. Events below this value are ignored. `MIN_NORTIFY_SCALE` is still accepted as a compatibility alias. |
 | `MIN_MENTION_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to mention `@everyone`. EEW alerts (`code` 556) always mention. |
 | `USERQUAKE_COOLDOWN_SEC` | No | Cooldown in seconds before another userquake (`code` 561) alert is posted for the **same area**. Default: `300`. |
+| `NOTIFY_CODES` | No | Comma-separated P2P codes to notify. Supported: `551` (earthquake info), `556` (EEW warning), `561` (userquake). If unset or empty, all supported codes are enabled. |
 
 Intensity codes used by `MIN_NOTIFY_SCALE` / `MIN_MENTION_SCALE`:
 
