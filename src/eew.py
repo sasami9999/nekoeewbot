@@ -30,6 +30,30 @@ MIN_NOTIFY_SCALE = envInt("MIN_NOTIFY_SCALE", envInt("MIN_NORTIFY_SCALE", 30))
 USERQUAKE_COOLDOWN_SEC = envInt("USERQUAKE_COOLDOWN_SEC", 300)
 SEEN_EVENT_LIMIT = envInt("SEEN_EVENT_LIMIT", 1000)
 
+# Discord-notifiable P2P codes currently implemented by this bot.
+SUPPORTED_NOTIFY_CODES = frozenset({551, 556, 561})
+
+def parseNotifyCodes(raw):
+    if raw is None or str(raw).strip() == "":
+        return set(SUPPORTED_NOTIFY_CODES)
+
+    codes = set()
+    for part in str(raw).split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            code = int(part)
+        except ValueError:
+            continue
+        if code in SUPPORTED_NOTIFY_CODES:
+            codes.add(code)
+
+    # If everything was invalid/unsupported, fall back to all supported codes.
+    return codes if codes else set(SUPPORTED_NOTIFY_CODES)
+
+NOTIFY_CODES = parseNotifyCodes(os.getenv("NOTIFY_CODES"))
+
 # area_code -> last notified monotonic time
 _last_userquake_by_area = {}
 # event id -> None (insertion-ordered for eviction)
@@ -123,6 +147,10 @@ def formatData(logger: logging.Logger, data):
     code = data.get('code')
     logger.debug("---------- format data started. ----------")
     logger.info(f"code: {code}")
+
+    if code in SUPPORTED_NOTIFY_CODES and code not in NOTIFY_CODES:
+        logger.info(f"skip code {code}: not enabled in NOTIFY_CODES={sorted(NOTIFY_CODES)}")
+        return ( None, None, False )
 
     if code == 561:
         return formatUserquake(logger, data)
