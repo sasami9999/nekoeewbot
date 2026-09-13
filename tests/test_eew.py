@@ -100,98 +100,133 @@ def test_parse_notify_codes_filters_supported_only():
 
 def test_format_data_skips_disabled_notify_code(mock_create_map):
     eew.NOTIFY_CODES = {551, 556}
-    embed, map_file, mention = eew.formatData(
+    embed, map_file, mention, content = eew.formatData(
         logger, {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
     )
     assert embed is None
     assert map_file is None
     assert mention is False
+    assert content is None
 
 
 def test_format_data_allows_enabled_notify_code(mock_create_map):
     eew.NOTIFY_CODES = {561}
-    embed, map_file, mention = eew.formatData(
+    embed, map_file, mention, content = eew.formatData(
         logger, {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
     )
-    assert embed is not None
-    assert mention is False
-
-
-def test_format_data_skips_below_notify_scale(mock_create_map):
-    embed, map_file, mention = eew.formatData(logger, sample_quake(max_scale=20))
     assert embed is None
     assert map_file is None
     assert mention is False
+    assert content == "【地震感知情報】東京で揺れを感知 / 日時: 2023/04/01 12:00:00"
+
+
+def test_format_data_skips_below_notify_scale(mock_create_map):
+    embed, map_file, mention, content = eew.formatData(logger, sample_quake(max_scale=20))
+    assert embed is None
+    assert map_file is None
+    assert mention is False
+    assert content is None
 
 
 def test_format_data_skips_invalid_coordinates(mock_create_map):
-    embed, map_file, mention = eew.formatData(
+    embed, map_file, mention, content = eew.formatData(
         logger, sample_quake(max_scale=40, latitude=-200, longitude=-200)
     )
     assert embed is None
     assert map_file is None
     assert mention is False
+    assert content is None
 
 
 def test_format_data_551_without_mention(mock_create_map):
-    embed, map_file, mention = eew.formatData(logger, sample_quake(code=551, max_scale=40))
+    embed, map_file, mention, content = eew.formatData(logger, sample_quake(code=551, max_scale=40))
     assert embed is not None
     assert embed.title == "地震情報"
     assert "**最大震度: 4**" in embed.description
     assert map_file.filename == "map_test.png"
     assert mention is False
+    assert content is None
 
 
 def test_format_data_551_with_mention(mock_create_map):
-    embed, map_file, mention = eew.formatData(logger, sample_quake(code=551, max_scale=50))
+    embed, map_file, mention, content = eew.formatData(logger, sample_quake(code=551, max_scale=50))
     assert embed is not None
     assert embed.title == "地震情報"
     assert mention is True
     assert map_file is not None
+    assert content is None
 
 
 def test_format_data_556_always_mentions(mock_create_map):
-    embed, map_file, mention = eew.formatData(logger, sample_quake(code=556, max_scale=30))
+    embed, map_file, mention, content = eew.formatData(logger, sample_quake(code=556, max_scale=30))
     assert embed is not None
     assert embed.title == "緊急地震速報（警報）"
     assert mention is True
     assert map_file is not None
+    assert content is None
 
 
 def test_format_data_unsupported_code(mock_create_map):
-    embed, map_file, mention = eew.formatData(logger, {"code": 555})
+    embed, map_file, mention, content = eew.formatData(logger, {"code": 555})
     assert embed is None
     assert map_file is None
     assert mention is False
+    assert content is None
 
 
 def test_format_data_554_detection_returns_none(mock_create_map):
-    embed, map_file, mention = eew.formatData(
+    embed, map_file, mention, content = eew.formatData(
         logger, {"code": 554, "type": "Full"}
     )
     assert embed is None
     assert map_file is None
     assert mention is False
+    assert content is None
 
 
 def test_format_data_sends_without_map_when_create_map_fails(monkeypatch):
     monkeypatch.setattr(eew.eq_map, "createMap", lambda *_args, **_kwargs: None)
-    embed, map_file, mention = eew.formatData(logger, sample_quake(code=551, max_scale=40))
+    embed, map_file, mention, content = eew.formatData(logger, sample_quake(code=551, max_scale=40))
     assert embed is not None
     assert map_file is None
     assert mention is False
+    assert content is None
     assert embed.image is None or getattr(embed.image, "url", None) in (None, "")
+
+
+def test_userquake_plain_message_and_no_map(monkeypatch):
+    called = {"map": False}
+
+    def fail_if_called(*_args, **_kwargs):
+        called["map"] = True
+        raise AssertionError("createMap should not be called for 561")
+
+    monkeypatch.setattr(eew.eq_map, "createMap", fail_if_called)
+    embed, map_file, mention, content = eew.formatData(
+        logger, {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
+    )
+    assert called["map"] is False
+    assert embed is None
+    assert map_file is None
+    assert mention is False
+    assert content == "【地震感知情報】東京で揺れを感知 / 日時: 2023/04/01 12:00:00"
+
+
+def test_format_display_time_strips_milliseconds():
+    assert eew.formatDisplayTime("2023/04/01 12:00:00.123") == "2023/04/01 12:00:00"
+    assert eew.formatDisplayTime("2023/04/01 12:00:00") == "2023/04/01 12:00:00"
+    assert eew.formatDisplayTime("不明") == "不明"
 
 
 def test_userquake_cooldown_applies_only_after_mark(mock_create_map):
     payload = {"code": 561, "area": 250, "time": "2023/04/01 12:00:00.123"}
-    first, _, _ = eew.formatData(logger, payload)
-    second_before_mark, _, _ = eew.formatData(logger, payload)
+    _, _, _, first = eew.formatData(logger, payload)
+    _, _, _, second_before_mark = eew.formatData(logger, payload)
     assert first is not None
     assert second_before_mark is not None
 
     eew.markUserquakeNotified(250)
-    third_after_mark, _, _ = eew.formatData(logger, payload)
+    _, _, _, third_after_mark = eew.formatData(logger, payload)
     assert third_after_mark is None
 
 
@@ -220,10 +255,11 @@ def test_parse_time_with_milliseconds_uses_jst():
 
 
 def test_embed_timestamp_keeps_jst_instant(mock_create_map):
-    embed, _, _ = eew.formatData(
+    embed, _, _, content = eew.formatData(
         logger, sample_quake(code=551, max_scale=40, time_str="2023/04/01 12:00:00")
     )
     assert embed is not None
+    assert content is None
     assert embed.timestamp is not None
     assert embed.timestamp.utcoffset().total_seconds() == 9 * 3600
     assert embed.timestamp.hour == 12
