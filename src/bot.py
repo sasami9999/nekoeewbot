@@ -72,49 +72,53 @@ async def websocketClient(uri):
     # connecting websocket server
     while True:
         try:
-            async with websockets.connect(uri) as websocket:
+            async with websockets.connect(
+                uri,
+                ping_interval=20,
+                ping_timeout=20,
+                close_timeout=10,
+            ) as websocket:
                 logger.info("P2Pquake connected!")
                 retryCount = 0
-                while True:
-                    async for message in websocket:
-                        try:
-                            data = json.loads(message)
+                async for message in websocket:
+                    try:
+                        data = json.loads(message)
 
-                            if eew.isDuplicateEvent(data.get("id")):
-                                logger.debug(f"skip duplicate event id={data.get('id')}")
-                                continue
-                            
-                            # formatData may fetch map tiles synchronously; keep the event loop free
-                            embedObj = await asyncio.to_thread(eew.formatData, logger, data)
-                            logger.debug("---------- format data end. ----------")
-
-                            embed, mapFile, isMention, content = embedObj
-
-                            if content:
-                                await channel.send(content=content)
-                            elif embed is None:
-                                continue
-                            else:
-                                logger.debug(f"is mention: {isMention}")
-                                desc = embed.description
-                                hypoName = embed.fields[0].value
-
-                                send_kwargs = {
-                                    "content": f"@everyone {desc} {hypoName}" if isMention else None,
-                                    "embed": embed,
-                                }
-                                if mapFile is not None:
-                                    send_kwargs["file"] = mapFile
-                                await channel.send(**send_kwargs)
-
-                            if data.get("code") == 561:
-                                eew.markUserquakeNotified(data.get("area"))
-                        except json.JSONDecodeError:
-                            logger.error(f"decode json fail!!!: {message}")
+                        if eew.isDuplicateEvent(data.get("id")):
+                            logger.debug(f"skip duplicate event id={data.get('id')}")
                             continue
-                        except Exception as e:
-                            logger.error(f"processing msg error!!!: {e}")
+                        
+                        # formatData may fetch map tiles synchronously; keep the event loop free
+                        embedObj = await asyncio.to_thread(eew.formatData, logger, data)
+                        logger.debug("---------- format data end. ----------")
+
+                        embed, mapFile, isMention, content = embedObj
+
+                        if content:
+                            await channel.send(content=content)
+                        elif embed is None:
                             continue
+                        else:
+                            logger.debug(f"is mention: {isMention}")
+                            desc = embed.description
+                            hypoName = embed.fields[0].value
+
+                            send_kwargs = {
+                                "content": f"@everyone {desc} {hypoName}" if isMention else None,
+                                "embed": embed,
+                            }
+                            if mapFile is not None:
+                                send_kwargs["file"] = mapFile
+                            await channel.send(**send_kwargs)
+
+                        if data.get("code") == 561:
+                            eew.markUserquakeNotified(data.get("area"))
+                    except json.JSONDecodeError:
+                        logger.error(f"decode json fail!!!: {message}")
+                        continue
+                    except Exception as e:
+                        logger.error(f"processing msg error!!!: {e}")
+                        continue
         except websockets.exceptions.ConnectionClosed as e:
             logger.warning(f"WebSocket disconnected!!!: {e}")
         except Exception as e:
@@ -126,6 +130,7 @@ async def websocketClient(uri):
         if retryCount >= 5:
             await channel.send(content=f"Connection to P2Pquake failed more than 5 times. Reconnecting in 5 seconds... ")
         
+        logger.info("Reconnecting to P2Pquake in 5 seconds...")
         await asyncio.sleep(5)
         retryCount = retryCount + 1
 
