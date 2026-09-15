@@ -123,16 +123,24 @@ async def websocketClient(uri):
             logger.warning(f"WebSocket disconnected!!!: {e}")
         except Exception as e:
             logger.error(f"WebSocket connection error!!!: {e}")
-            
-        if retryCount >= 10:
-            break
+
+        # Exponential backoff: 5s, 10s, 20s, ... capped at 5 minutes.
+        reconnectDelay = min(5 * (2 ** retryCount), 300)
+        retryCount = retryCount + 1
 
         if retryCount >= 5:
-            await channel.send(content=f"Connection to P2Pquake failed more than 5 times. Reconnecting in 5 seconds... ")
-        
-        logger.info("Reconnecting to P2Pquake in 5 seconds...")
-        await asyncio.sleep(5)
-        retryCount = retryCount + 1
+            await channel.send(
+                content=(
+                    f"Connection to P2Pquake failed {retryCount} times. "
+                    f"Reconnecting in {reconnectDelay} seconds..."
+                )
+            )
+
+        logger.info(
+            f"Reconnecting to P2Pquake in {reconnectDelay} seconds... "
+            f"(attempt {retryCount})"
+        )
+        await asyncio.sleep(reconnectDelay)
 
 
 class MyBot(commands.Bot):
