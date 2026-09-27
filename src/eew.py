@@ -1,5 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from collections import OrderedDict
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import discord
 import logging
 # other module
@@ -53,6 +54,22 @@ def parseNotifyCodes(raw):
     return codes if codes else set(SUPPORTED_NOTIFY_CODES)
 
 NOTIFY_CODES = parseNotifyCodes(os.getenv("NOTIFY_CODES"))
+
+def buildWsUri(base_uri, codes=None):
+    """Append P2P `codes` query params so unused streams (e.g. 555) are not received."""
+    if codes is None:
+        codes = NOTIFY_CODES
+
+    parsed = urlparse(base_uri)
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key not in ("codes", "codes[]")
+    ]
+    for code in sorted(codes):
+        query.append(("codes", str(code)))
+
+    return urlunparse(parsed._replace(query=urlencode(query)))
 
 # area_code -> last notified monotonic time
 _last_userquake_by_area = {}

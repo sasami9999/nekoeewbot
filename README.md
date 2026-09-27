@@ -38,12 +38,12 @@ Let's prepare a cat image for the bot's icon!
 |---|---|---|
 | `TOKEN` | Yes | Discord bot token. |
 | `CHANNEL_ID` | Yes | Discord channel ID used for alerts. |
-| `WS_URI` | Yes | P2Pquake WebSocket endpoint. Use `wss://api-realtime-sandbox.p2pquake.net/v2/ws` for sandbox testing, or `wss://api.p2pquake.net/v2/ws` for production. |
+| `WS_URI` | Yes | P2Pquake WebSocket endpoint. Use `wss://api-realtime-sandbox.p2pquake.net/v2/ws` for sandbox testing, or `wss://api.p2pquake.net/v2/ws` for production. The bot appends `codes` from `NOTIFY_CODES` automatically (do not put `codes` in this URI). |
 | `LOGGING_LEVEL` | No | Log level: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. Defaults to `WARNING` if unset or unrecognized. |
 | `MIN_NOTIFY_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to post an earthquake / EEW alert. Events below this value are ignored. `MIN_NORTIFY_SCALE` is still accepted as a compatibility alias. |
 | `MIN_MENTION_SCALE` | Yes (for 551/556) | Minimum max-intensity code required to mention `@everyone`. EEW alerts (`code` 556) always mention. |
 | `USERQUAKE_COOLDOWN_SEC` | No | Cooldown in seconds before another userquake (`code` 561) alert is posted for the **same area**. Default: `300`. |
-| `NOTIFY_CODES` | No | Comma-separated P2P codes to notify. Supported: `551` (earthquake info), `556` (EEW warning), `561` (userquake). If unset or empty, all supported codes are enabled. |
+| `NOTIFY_CODES` | No | Comma-separated P2P codes to subscribe and notify. Supported: `551` (earthquake info), `556` (EEW warning), `561` (userquake). If unset or empty, all supported codes are enabled. Also used as the WebSocket `codes` filter so unused streams such as `555` (areapeers) are not received. |
 
 Intensity codes used by `MIN_NOTIFY_SCALE` / `MIN_MENTION_SCALE`:
 

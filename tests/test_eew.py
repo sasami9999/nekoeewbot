@@ -98,6 +98,21 @@ def test_parse_notify_codes_filters_supported_only():
     assert eew.parseNotifyCodes("999,abc") == set(eew.SUPPORTED_NOTIFY_CODES)
 
 
+def test_build_ws_uri_appends_sorted_codes():
+    uri = eew.buildWsUri("wss://api.p2pquake.net/v2/ws", {561, 551, 556})
+    assert uri == (
+        "wss://api.p2pquake.net/v2/ws?codes=551&codes=556&codes=561"
+    )
+
+
+def test_build_ws_uri_replaces_existing_codes():
+    uri = eew.buildWsUri(
+        "wss://api.p2pquake.net/v2/ws?codes=555&foo=bar",
+        {551},
+    )
+    assert uri == "wss://api.p2pquake.net/v2/ws?foo=bar&codes=551"
+
+
 def test_format_data_skips_disabled_notify_code(mock_create_map):
     eew.NOTIFY_CODES = {551, 556}
     embed, map_file, mention, content = eew.formatData(

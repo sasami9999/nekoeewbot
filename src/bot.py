@@ -66,14 +66,15 @@ async def websocketClient(uri):
         return
 
     await channel.send(content="Nyaaa! (logged in!)")
-    logger.info(f"Channel found. Connecting to {uri}...")
+    ws_uri = eew.buildWsUri(uri)
+    logger.info(f"Channel found. Connecting to {ws_uri}...")
 
     retryCount = 0
     # connecting websocket server
     while True:
         try:
             async with websockets.connect(
-                uri,
+                ws_uri,
                 ping_interval=20,
                 ping_timeout=20,
                 close_timeout=10,
