@@ -148,7 +148,7 @@ def formatUserquake(logger: logging.Logger, data):
     time_str = data.get('time', '不明')
     display_time = formatDisplayTime(time_str)
 
-    logger.info(f"userquake area: {area_code} ({area_name})")
+    logger.info(f"code: 561, userquake area: {area_code} ({area_name})")
 
     content = f"【地震感知情報】{area_name}で揺れを感知 / 日時: {display_time}"
     return ( None, None, False, content )
@@ -156,7 +156,6 @@ def formatUserquake(logger: logging.Logger, data):
 def formatData(logger: logging.Logger, data):
     code = data.get('code')
     logger.debug("---------- format data started. ----------")
-    logger.info(f"code: {code}")
 
     if code in SUPPORTED_NOTIFY_CODES and code not in NOTIFY_CODES:
         logger.info(f"skip code {code}: not enabled in NOTIFY_CODES={sorted(NOTIFY_CODES)}")
@@ -174,7 +173,10 @@ def formatData(logger: logging.Logger, data):
         max_scale_code = eq.get('maxScale', -1)
         tsunami = effectiveToString(eq.get('domesticTsunami', 'UnKnown'))
 
-        logger.info(f"hypo_name: {hypo_name}, magnitude: {magnitude}, max_scale_code: {max_scale_code}, tsunami: {tsunami}")
+        logger.info(
+            f"code: {code}, hypo_name: {hypo_name}, magnitude: {magnitude}, "
+            f"max_scale_code: {max_scale_code}, tsunami: {tsunami}"
+        )
         
         # check need to notification
         if max_scale_code < MIN_NOTIFY_SCALE:
