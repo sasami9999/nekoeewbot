@@ -158,7 +158,7 @@ def formatData(logger: logging.Logger, data):
     logger.debug("---------- format data started. ----------")
 
     if code in SUPPORTED_NOTIFY_CODES and code not in NOTIFY_CODES:
-        logger.info(f"skip code {code}: not enabled in NOTIFY_CODES={sorted(NOTIFY_CODES)}")
+        logger.debug(f"skip code {code}: not enabled in NOTIFY_CODES={sorted(NOTIFY_CODES)}")
         return ( None, None, False, None )
 
     if code == 561:
